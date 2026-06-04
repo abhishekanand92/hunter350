@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hunter 350">
+<title>Hunter 350 · Fuel Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --re-red:#C0392B;--re-dark:#141414;--re-surface:#1f1f1f;--re-card:#282828;
+  --re-border:rgba(255,255,255,0.07);--re-text:#f0ede8;--re-muted:#777;
+  --re-accent:#E8523A;--re-gold:#D4A84B;--re-green:#4CAF7D;--re-blue:#4A90D9;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+html,body{height:100%;overflow:hidden;background:#141414}
+body{font-family:'DM Sans',sans-serif;color:var(--re-text);overscroll-behavior:none}
+
+/* ── APP SHELL ── */
+.app{display:flex;flex-direction:column;height:100vh;max-width:480px;margin:0 auto;background:var(--re-dark);position:relative}
+.status-bar-pad{height:var(--safe-top);background:var(--re-dark);flex-shrink:0}
+
+/* ── TOP NAV ── */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:.5px solid var(--re-border);flex-shrink:0;background:var(--re-dark);z-index:10}
+.nav-logo{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px}
+.nav-logo span{color:var(--re-accent)}
+.nav-btn{background:none;border:none;color:var(--re-muted);font-size:22px;cursor:pointer;padding:6px;display:flex;align-items:center;border-radius:8px}
+.nav-btn:active{background:rgba(255,255,255,0.06)}
+
+/* ── SCROLL CONTAINER ── */
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:0}
+.scroll-area::-webkit-scrollbar{display:none}
+
+/* ── TAB BAR ── */
+.tab-bar{display:flex;background:var(--re-surface);border-top:.5px solid var(--re-border);flex-shrink:0;padding:0 8px;padding-bottom:var(--safe-bot)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0;background:none;border:none;color:var(--re-muted);font-family:'DM Sans',sans-serif;font-size:10px;cursor:pointer;transition:color .2s}
+.tab i{font-size:20px}
+.tab.active{color:var(--re-accent)}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100%}
+.screen.visible{display:block}
+
+/* ── DASHBOARD ── */
+.dash-hero{background:linear-gradient(150deg,#261a18 0%,#1a1212 50%,var(--re-dark) 100%);padding:20px 20px 22px;border-bottom:.5px solid var(--re-border);position:relative;overflow:hidden}
+.dash-hero::before{content:'';position:absolute;right:-40px;top:-40px;width:220px;height:220px;background:radial-gradient(circle,rgba(232,82,58,.12) 0%,transparent 70%);pointer-events:none}
+.bike-label{font-family:'Rajdhani',sans-serif;font-size:12px;letter-spacing:3px;color:var(--re-muted);text-transform:uppercase;margin-bottom:2px}
+.bike-name{font-family:'Rajdhani',sans-serif;font-size:30px;font-weight:700;letter-spacing:1px}
+.bike-name span{color:var(--re-accent)}
+
+.fuel-gauge-wrap{margin:18px 0 0;background:rgba(255,255,255,0.04);border-radius:16px;border:.5px solid var(--re-border);padding:16px}
+.fuel-gauge-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.fuel-gauge-lbl{font-size:11px;letter-spacing:1.5px;color:var(--re-muted);text-transform:uppercase}
+.fuel-gauge-val{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700}
+.gauge-bar{height:8px;background:rgba(255,255,255,0.08);border-radius:100px;overflow:hidden;margin-bottom:6px}
+.gauge-fill{height:100%;border-radius:100px;transition:width .9s cubic-bezier(.25,1,.5,1);background:linear-gradient(90deg,var(--re-accent),var(--re-gold))}
+.gauge-ticks{display:flex;justify-content:space-between;font-size:9px;color:var(--re-muted);letter-spacing:1px}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:14px 16px}
+.kpi-card{background:var(--re-surface);border:.5px solid var(--re-border);border-radius:14px;padding:14px}
+.kpi-icon{font-size:18px;color:var(--re-muted);margin-bottom:8px}
+.kpi-value{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;line-height:1}
+.kpi-unit{font-size:13px;font-weight:400;color:var(--re-muted);margin-left:2px}
+.kpi-label{font-size:11px;color:var(--re-muted);margin-top:4px;letter-spacing:.3px}
+.kpi-trend{font-size:11px;margin-top:5px}
+.kpi-trend.up{color:var(--re-green)}.kpi-trend.down{color:var(--re-accent)}.kpi-trend.neutral{color:var(--re-gold)}
+
+.range-card{margin:0 16px 14px;background:var(--re-surface);border:.5px solid var(--re-border);border-radius:16px;padding:18px;position:relative;overflow:hidden}
+.range-card::after{content:'';position:absolute;right:-20px;bottom:-20px;width:110px;height:110px;background:radial-gradient(circle,rgba(74,144,217,.1) 0%,transparent 70%);pointer-events:none}
+.range-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.range-title{font-size:11px;letter-spacing:2px;color:var(--re-muted);text-transform:uppercase}
+.range-badge{font-size:10px;padding:3px 10px;border-radius:100px;background:rgba(74,144,217,.15);color:var(--re-blue);letter-spacing:.3px}
+.range-km{font-family:'Rajdhani',sans-serif;font-size:52px;font-weight:700;line-height:1}
+.range-km span{font-size:22px;font-weight:400;color:var(--re-muted)}
+.range-sub{font-size:12px;color:var(--re-muted);margin-top:5px}
+.range-prog-row{margin-top:14px;display:flex;align-items:center;gap:10px}
+.range-prog-bar{flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:100px;overflow:hidden}
+.range-prog-fill{height:100%;background:var(--re-blue);border-radius:100px;transition:width .8s}
+.range-days{font-size:11px;color:var(--re-blue);white-space:nowrap}
+
+.section-hdr{display:flex;justify-content:space-between;align-items:center;padding:4px 16px 10px}
+.section-title{font-size:11px;letter-spacing:2px;color:var(--re-muted);text-transform:uppercase}
+.section-link{font-size:12px;color:var(--re-accent);cursor:pointer}
+.entry-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:.5px solid var(--re-border)}
+.entry-dot{width:8px;height:8px;border-radius:50%;background:var(--re-accent);flex-shrink:0}
+.entry-dot.green{background:var(--re-green)}
+.entry-info{flex:1;min-width:0}
+.entry-date{font-size:12px;color:var(--re-muted)}
+.entry-detail{font-size:14px;color:var(--re-text);margin-top:2px}
+.entry-right{text-align:right;flex-shrink:0}
+.entry-mileage{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:600}
+.entry-eff{font-size:11px;color:var(--re-green)}
+
+/* ── ADD ENTRY ── */
+.form-wrap{padding:20px}
+.form-title{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;letter-spacing:1px;margin-bottom:4px}
+.form-subtitle{font-size:13px;color:var(--re-muted);margin-bottom:22px}
+.field-group{margin-bottom:16px}
+.field-label{font-size:11px;letter-spacing:1.5px;color:var(--re-muted);text-transform:uppercase;margin-bottom:8px;display:block}
+.field-input{width:100%;background:var(--re-surface);border:.5px solid var(--re-border);border-radius:12px;padding:14px 16px;color:var(--re-text);font-family:'DM Sans',sans-serif;font-size:16px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+.field-input:focus{border-color:var(--re-accent)}
+.field-input::placeholder{color:var(--re-muted)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.upload-zone{border:1px dashed rgba(255,255,255,.14);border-radius:14px;padding:26px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:rgba(255,255,255,.02)}
+.upload-zone:active{background:rgba(232,82,58,.06)}
+.upload-zone.has-file{border-color:var(--re-green);background:rgba(76,175,125,.05)}
+.upload-icon{font-size:30px;color:var(--re-muted);margin-bottom:8px;display:block}
+.upload-text{font-size:13px;color:var(--re-muted)}
+.upload-hint{font-size:11px;color:rgba(255,255,255,.2);margin-top:4px}
+.upload-preview{max-width:100%;border-radius:10px;margin-top:12px;max-height:150px;object-fit:cover}
+.btn-primary{width:100%;background:var(--re-accent);border:none;border-radius:14px;padding:17px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:opacity .2s,transform .1s;margin-top:8px}
+.btn-primary:active{transform:scale(.98);opacity:.88}
+.btn-danger{background:none;border:.5px solid rgba(232,82,58,.4);color:var(--re-accent);border-radius:10px;padding:10px 16px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;margin-top:10px;width:100%}
+.btn-danger:active{background:rgba(232,82,58,.1)}
+
+/* ── HISTORY ── */
+.history-wrap{padding:0 0 16px}
+.history-header{padding:20px 16px 14px}
+.history-title{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;letter-spacing:1px}
+.history-sub{font-size:13px;color:var(--re-muted);margin-top:2px}
+.stat-strip{display:flex;gap:8px;padding:0 16px 14px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.stat-strip::-webkit-scrollbar{display:none}
+.stat-chip{background:var(--re-surface);border:.5px solid var(--re-border);border-radius:100px;padding:7px 14px;font-size:12px;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:6px}
+.stat-chip i{color:var(--re-accent);font-size:14px}
+.history-entry{margin:0 16px 10px;background:var(--re-surface);border:.5px solid var(--re-border);border-radius:14px;padding:14px 16px}
+.he-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.he-date{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:600}
+.he-eff-badge{font-size:11px;padding:3px 10px;border-radius:100px;background:rgba(76,175,125,.15);color:var(--re-green);font-weight:500;flex-shrink:0}
+.he-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.he-stat-val{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:600}
+.he-stat-label{font-size:10px;color:var(--re-muted);letter-spacing:.3px;margin-top:1px}
+.he-img-row{margin-top:10px;padding-top:10px;border-top:.5px solid var(--re-border);display:flex;align-items:center;gap:8px;cursor:pointer}
+.he-img-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover}
+.he-img-label{font-size:11px;color:var(--re-muted)}
+.he-del{background:none;border:none;color:rgba(232,82,58,.5);font-size:16px;cursor:pointer;padding:4px;margin-left:auto}
+
+/* ── STATS ── */
+.stats-wrap{padding:0 16px 16px}
+.stats-header{padding:20px 0 14px}
+.stats-title{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;letter-spacing:1px}
+.stats-sub{font-size:13px;color:var(--re-muted);margin-top:2px}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.summary-item{background:var(--re-surface);border:.5px solid var(--re-border);border-radius:14px;padding:14px}
+.summary-item-val{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700}
+.summary-item-label{font-size:11px;color:var(--re-muted);margin-top:3px}
+.best-badge{font-size:10px;color:var(--re-gold);margin-top:4px}
+.chart-card{background:var(--re-surface);border:.5px solid var(--re-border);border-radius:16px;padding:16px;margin-bottom:12px}
+.chart-title{font-size:11px;letter-spacing:1.5px;color:var(--re-muted);text-transform:uppercase;margin-bottom:14px}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:90px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bar{width:100%;border-radius:4px 4px 0 0;min-height:4px}
+.bar-label{font-size:9px;color:var(--re-muted)}
+.bar-val{font-size:10px;color:var(--re-text);font-family:'Rajdhani',sans-serif;font-weight:600}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--re-green);color:#fff;padding:11px 22px;border-radius:100px;font-size:13px;font-weight:500;opacity:0;transition:opacity .3s,transform .3s;z-index:300;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── MODAL (image view) ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:400;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal-img{max-width:100%;max-height:80vh;border-radius:12px;object-fit:contain}
+.modal-close{position:absolute;top:20px;right:20px;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:22px;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* ── INSTALL BANNER ── */
+.install-banner{margin:14px 16px;background:linear-gradient(135deg,rgba(232,82,58,.12),rgba(212,168,75,.08));border:.5px solid rgba(232,82,58,.2);border-radius:14px;padding:14px;display:none;align-items:center;gap:12px}
+.install-banner.show{display:flex}
+.install-banner-text{flex:1;font-size:12px;color:var(--re-muted);line-height:1.5}
+.install-banner-text b{color:var(--re-text);font-size:13px;display:block;margin-bottom:2px}
+.install-btn{background:var(--re-accent);border:none;border-radius:10px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;padding:8px 14px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+
+#file-input-hidden{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="status-bar-pad"></div>
+
+  <!-- NAV -->
+  <div class="nav">
+    <div class="nav-logo">HUNT<span>ER</span> 350</div>
+    <button class="nav-btn" onclick="switchTab('add')" aria-label="Add entry"><i class="ti ti-plus"></i></button>
+  </div>
+
+  <!-- SCROLL AREA -->
+  <div class="scroll-area" id="scroll-area">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="screen visible" id="screen-dashboard">
+      <div id="install-banner" class="install-banner">
+        <div class="install-banner-text">
+          <b>Install as App</b>
+          Tap the browser menu → "Add to Home Screen" for a full native app experience.
+        </div>
+        <button class="install-btn" id="install-btn">Install</button>
+      </div>
+
+      <div class="dash-hero">
+        <div class="bike-label">Royal Enfield</div>
+        <div class="bike-name">Hunter <span>350</span></div>
+        <div class="fuel-gauge-wrap">
+          <div class="fuel-gauge-hdr">
+            <div class="fuel-gauge-lbl">Est. Fuel Remaining</div>
+            <div class="fuel-gauge-val" id="fuel-remaining">-- L</div>
+          </div>
+          <div class="gauge-bar"><div class="gauge-fill" id="gauge-fill" style="width:0%"></div></div>
+          <div class="gauge-ticks"><span>E</span><span>1/4</span><span>1/2</span><span>3/4</span><span>F</span></div>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon"><i class="ti ti-dashboard"></i></div>
+          <div class="kpi-value"><span id="avg-mileage">--</span><span class="kpi-unit">km/L</span></div>
+          <div class="kpi-label">Avg Mileage</div>
+          <div class="kpi-trend neutral" id="mileage-trend">— No data yet</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon"><i class="ti ti-road"></i></div>
+          <div class="kpi-value"><span id="total-km">--</span><span class="kpi-unit">km</span></div>
+          <div class="kpi-label">Total Distance</div>
+          <div class="kpi-trend neutral" id="km-trend">— Tracked</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon"><i class="ti ti-droplet"></i></div>
+          <div class="kpi-value"><span id="total-fuel">--</span><span class="kpi-unit">L</span></div>
+          <div class="kpi-label">Total Fuel Used</div>
+          <div class="kpi-trend neutral" id="fuel-trend">— Logged</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon"><i class="ti ti-coin-rupee"></i></div>
+          <div class="kpi-value"><span id="total-cost">--</span></div>
+          <div class="kpi-label">Total Spent</div>
+          <div class="kpi-trend neutral" id="cost-trend">— This year</div>
+        </div>
+      </div>
+
+      <div class="range-card">
+        <div class="range-hdr">
+          <div class="range-title">Estimated Range Left</div>
+          <div class="range-badge" id="range-badge">Calculating…</div>
+        </div>
+        <div class="range-km" id="range-km">--<span> km</span></div>
+        <div class="range-sub" id="range-sub">Add a fuel entry to calculate</div>
+        <div class="range-prog-row">
+          <div class="range-prog-bar"><div class="range-prog-fill" id="range-progress" style="width:0%"></div></div>
+          <div class="range-days" id="range-days">—</div>
+        </div>
+      </div>
+
+      <div class="section-hdr">
+        <div class="section-title">Recent Fills</div>
+        <div class="section-link" onclick="switchTab('history')">View all →</div>
+      </div>
+      <div id="recent-list">
+        <div style="padding:24px;text-align:center;color:var(--re-muted);font-size:13px">No entries yet. Tap + to add your first fill-up!</div>
+      </div>
+    </div>
+
+    <!-- ══ ADD ENTRY ══ -->
+    <div class="screen" id="screen-add">
+      <div class="form-wrap">
+        <div class="form-title">Log Fill-up</div>
+        <div class="form-subtitle">Record your fuel purchase details</div>
+
+        <div class="field-group">
+          <label class="field-label" for="input-date">Date</label>
+          <input type="date" class="field-input" id="input-date">
+        </div>
+
+        <div class="field-row">
+          <div>
+            <label class="field-label" for="input-fuel">Fuel (Litres)</label>
+            <input type="number" class="field-input" id="input-fuel" placeholder="e.g. 8.5" step="0.1" min="0" inputmode="decimal">
+          </div>
+          <div>
+            <label class="field-label" for="input-amount">Amount (₹)</label>
+            <input type="number" class="field-input" id="input-amount" placeholder="e.g. 890" step="1" min="0" inputmode="numeric">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="input-odo">Odometer Reading (km)</label>
+          <input type="number" class="field-input" id="input-odo" placeholder="e.g. 12450" step="1" min="0" inputmode="numeric">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="input-station">Fuel Station (Optional)</label>
+          <input type="text" class="field-input" id="input-station" placeholder="e.g. HP Petrol Pump, NH-48">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Receipt / Photo (Optional)</label>
+          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input-hidden').click()">
+            <i class="ti ti-upload upload-icon"></i>
+            <div class="upload-text">Tap to upload image or document</div>
+            <div class="upload-hint">JPG, PNG, PDF supported</div>
+            <img id="upload-preview" class="upload-preview" style="display:none" alt="Receipt preview">
+          </div>
+          <input type="file" id="file-input-hidden" accept="image/*,.pdf" capture="environment">
+        </div>
+
+        <button class="btn-primary" onclick="saveEntry()">SAVE ENTRY</button>
+      </div>
+    </div>
+
+    <!-- ══ HISTORY ══ -->
+    <div class="screen" id="screen-history">
+      <div class="history-wrap">
+        <div class="history-header">
+          <div class="history-title">Fuel History</div>
+          <div class="history-sub" id="history-sub">All your fill-up records</div>
+        </div>
+        <div class="stat-strip" id="stat-strip">
+          <div class="stat-chip"><i class="ti ti-gas-station"></i><span id="strip-entries">0 entries</span></div>
+          <div class="stat-chip"><i class="ti ti-droplet"></i><span id="strip-fuel">0 L total</span></div>
+          <div class="stat-chip"><i class="ti ti-coin-rupee"></i><span id="strip-cost">₹0 spent</span></div>
+        </div>
+        <div id="history-list">
+          <div style="padding:30px;text-align:center;color:var(--re-muted);font-size:13px">No entries yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ STATS ══ -->
+    <div class="screen" id="screen-stats">
+      <div class="stats-wrap">
+        <div class="stats-header">
+          <div class="stats-title">Analytics</div>
+          <div class="stats-sub">Performance overview</div>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-item-val" id="s-best">--</div>
+            <div class="summary-item-label">Best Mileage (km/L)</div>
+            <div class="best-badge">⭐ Personal best</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-item-val" id="s-worst">--</div>
+            <div class="summary-item-label">Lowest Mileage (km/L)</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-item-val" id="s-rate">--</div>
+            <div class="summary-item-label">Avg ₹ per km</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-item-val" id="s-fills">--</div>
+            <div class="summary-item-label">Total Fill-ups</div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Mileage per Fill-up (km/L)</div>
+          <div class="bar-chart" id="bar-chart">
+            <div style="color:var(--re-muted);font-size:12px;width:100%;text-align:center;padding:20px 0">Add 2+ entries to see chart</div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Fuel Cost Trend (₹/L)</div>
+          <div class="bar-chart" id="bar-chart-cost">
+            <div style="color:var(--re-muted);font-size:12px;width:100%;text-align:center;padding:20px 0">Add entries to see trend</div>
+          </div>
+        </div>
+        <div class="chart-card" style="margin-bottom:0">
+          <div class="chart-title">Data Management</div>
+          <p style="font-size:12px;color:var(--re-muted);margin-bottom:14px;line-height:1.6">Export your data as a JSON backup file, or import a previously exported backup.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button class="btn-primary" style="margin-top:0;font-size:14px;padding:12px" onclick="exportData()">EXPORT</button>
+            <button class="btn-primary" style="margin-top:0;font-size:14px;padding:12px;background:var(--re-surface);border:.5px solid var(--re-border);color:var(--re-text)" onclick="document.getElementById('import-input').click()">IMPORT</button>
+          </div>
+          <input type="file" id="import-input" accept=".json" style="display:none">
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /scroll-area -->
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <button class="tab active" id="tab-dashboard" onclick="switchTab('dashboard')"><i class="ti ti-gauge"></i><span>Dashboard</span></button>
+    <button class="tab" id="tab-add" onclick="switchTab('add')"><i class="ti ti-plus"></i><span>Add</span></button>
+    <button class="tab" id="tab-history" onclick="switchTab('history')"><i class="ti ti-history"></i><span>History</span></button>
+    <button class="tab" id="tab-stats" onclick="switchTab('stats')"><i class="ti ti-chart-bar"></i><span>Stats</span></button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Image modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
+  <button class="modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
+  <img class="modal-img" id="modal-img" src="" alt="Receipt">
+</div>
+
+<script>
+const RE_TANK = 13;
+let entries = [];
+let deferredInstallPrompt = null;
+
+// ── Storage ──
+function loadEntries(){
+  try{ entries = JSON.parse(localStorage.getItem('re_hunter_v2')||'[]'); }catch(e){ entries=[]; }
+}
+function saveEntries(){
+  try{ localStorage.setItem('re_hunter_v2', JSON.stringify(entries)); }catch(e){}
+}
+loadEntries();
+
+// ── PWA Install ──
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('install-banner').classList.add('show');
+});
+document.getElementById('install-btn').addEventListener('click', async () => {
+  if(deferredInstallPrompt){ await deferredInstallPrompt.prompt(); deferredInstallPrompt = null; }
+  document.getElementById('install-banner').classList.remove('show');
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').classList.remove('show');
+});
+
+// ── File upload ──
+document.getElementById('file-input-hidden').addEventListener('change', function(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const zone = document.getElementById('upload-zone');
+    const preview = document.getElementById('upload-preview');
+    if(file.type.startsWith('image/')){
+      preview.src = ev.target.result;
+      preview.style.display = 'block';
+    }
+    zone.classList.add('has-file');
+    zone.querySelector('.upload-text').textContent = '✓ ' + file.name;
+    zone.querySelector('.upload-hint').textContent = (file.size/1024).toFixed(0)+' KB';
+    zone._fileData = ev.target.result;
+    zone._fileName = file.name;
+    zone._fileType = file.type;
+  };
+  reader.readAsDataURL(file);
+});
+
+// ── Import/Export ──
+document.getElementById('import-input').addEventListener('change', function(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(Array.isArray(data)){
+        entries = data; saveEntries(); renderDashboard(); renderHistory(); renderStats();
+        showToast('✓ Imported '+data.length+' entries');
+      } else { showToast('Invalid backup file'); }
+    }catch(err){ showToast('Could not read file'); }
+  };
+  reader.readAsText(file);
+  this.value='';
+});
+function exportData(){
+  const blob = new Blob([JSON.stringify(entries, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'hunter350_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Backup exported');
+}
+
+// ── Tab switching ──
+function switchTab(tab){
+  ['dashboard','add','history','stats'].forEach(t=>{
+    document.getElementById('screen-'+t).classList.remove('visible');
+    document.getElementById('tab-'+t).classList.remove('active');
+  });
+  document.getElementById('screen-'+tab).classList.add('visible');
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('scroll-area').scrollTop = 0;
+  if(tab==='dashboard') renderDashboard();
+  if(tab==='history') renderHistory();
+  if(tab==='stats') renderStats();
+}
+
+// ── Toast ──
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ── Modal ──
+function openModal(src){ document.getElementById('modal-img').src=src; document.getElementById('modal-overlay').classList.add('show'); }
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('show'); }
+
+// ── Set default date ──
+document.getElementById('input-date').value = new Date().toISOString().split('T')[0];
+
+// ── Save entry ──
+function saveEntry(){
+  const date = document.getElementById('input-date').value;
+  const fuel = parseFloat(document.getElementById('input-fuel').value);
+  const amount = parseFloat(document.getElementById('input-amount').value);
+  const odo = parseInt(document.getElementById('input-odo').value);
+  const station = document.getElementById('input-station').value.trim();
+  const zone = document.getElementById('upload-zone');
+  if(!date||isNaN(fuel)||isNaN(odo)){ showToast('Fill in date, fuel & odometer'); return; }
+  entries.push({
+    id: Date.now(), date, fuel,
+    amount: isNaN(amount)?0:amount,
+    odo, station,
+    fileData: zone._fileData||null,
+    fileName: zone._fileName||null,
+    fileType: zone._fileType||null
+  });
+  entries.sort((a,b)=>new Date(a.date)-new Date(b.date));
+  saveEntries();
+  // reset form
+  document.getElementById('input-fuel').value='';
+  document.getElementById('input-amount').value='';
+  document.getElementById('input-odo').value='';
+  document.getElementById('input-station').value='';
+  const preview = document.getElementById('upload-preview');
+  preview.style.display='none'; preview.src='';
+  zone.classList.remove('has-file');
+  zone.querySelector('.upload-text').textContent='Tap to upload image or document';
+  zone.querySelector('.upload-hint').textContent='JPG, PNG, PDF supported';
+  zone._fileData=null; zone._fileName=null; zone._fileType=null;
+  document.getElementById('file-input-hidden').value='';
+  showToast('✓ Entry saved!');
+  switchTab('dashboard');
+}
+
+// ── Delete entry ──
+function deleteEntry(id){
+  if(!confirm('Delete this entry?')) return;
+  entries = entries.filter(e=>e.id!==id);
+  saveEntries(); renderHistory(); renderDashboard(); renderStats();
+  showToast('Entry deleted');
+}
+
+// ── Compute mileage ──
+function computeMileage(e1, e2){
+  const km = e2.odo - e1.odo;
+  if(km<=0||e1.fuel<=0) return null;
+  return km/e1.fuel;
+}
+
+// ── Format date ──
+function fmtDate(d){
+  const date = new Date(d+'T00:00:00');
+  return date.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'});
+}
+
+// ── RENDER DASHBOARD ──
+function renderDashboard(){
+  if(entries.length===0){
+    document.getElementById('avg-mileage').textContent='--';
+    document.getElementById('total-km').textContent='--';
+    document.getElementById('total-fuel').textContent='--';
+    document.getElementById('total-cost').textContent='--';
+    document.getElementById('fuel-remaining').textContent='-- L';
+    document.getElementById('gauge-fill').style.width='0%';
+    document.getElementById('range-km').innerHTML='--<span> km</span>';
+    document.getElementById('range-sub').textContent='Add a fuel entry to calculate';
+    document.getElementById('range-badge').textContent='Calculating…';
+    document.getElementById('range-progress').style.width='0%';
+    document.getElementById('range-days').textContent='—';
+    document.getElementById('recent-list').innerHTML='<div style="padding:24px;text-align:center;color:var(--re-muted);font-size:13px">No entries yet. Tap + to add your first fill-up!</div>';
+    return;
+  }
+  const s = [...entries].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const totalFuel = s.reduce((x,e)=>x+e.fuel,0);
+  const totalCost = s.reduce((x,e)=>x+e.amount,0);
+  const first=s[0], last=s[s.length-1];
+  const totalKm = s.length>1 ? last.odo-first.odo : 0;
+  const mileages=[];
+  for(let i=0;i<s.length-1;i++){
+    const m=computeMileage(s[i],s[i+1]);
+    if(m&&m>0&&m<100) mileages.push(m);
+  }
+  const avgMileage = mileages.length>0 ? mileages.reduce((a,v)=>a+v,0)/mileages.length : null;
+  document.getElementById('avg-mileage').textContent = avgMileage ? avgMileage.toFixed(1):'--';
+  document.getElementById('total-km').textContent = totalKm>0 ? totalKm.toLocaleString():'--';
+  document.getElementById('total-fuel').textContent = totalFuel.toFixed(1);
+  document.getElementById('total-cost').textContent = totalCost>0 ? '₹'+Math.round(totalCost).toLocaleString():'--';
+  if(avgMileage){
+    const mt = avgMileage>=35?'↑ Above average':avgMileage>=28?'→ Typical range':'↓ Below average';
+    const mc = avgMileage>=35?'up':avgMileage>=28?'neutral':'down';
+    document.getElementById('mileage-trend').textContent=mt;
+    document.getElementById('mileage-trend').className='kpi-trend '+mc;
+  }
+  document.getElementById('km-trend').textContent='— Tracked total';
+  document.getElementById('fuel-trend').textContent='— '+s.length+' fill-up'+(s.length>1?'s':'');
+  document.getElementById('cost-trend').textContent=totalCost>0?'— ₹'+(totalKm>0?(totalCost/totalKm).toFixed(1):'--')+'/km':'— This year';
+  // Range estimation
+  if(avgMileage && last.fuel>0){
+    const now=new Date(); const lastDate=new Date(last.date+'T00:00:00');
+    const daysSince=Math.max(0,Math.floor((now-lastDate)/(86400000)));
+    let dailyKm=null;
+    if(s.length>1){
+      const spanDays=Math.max(1,Math.floor((new Date(last.date+'T00:00:00')-new Date(first.date+'T00:00:00'))/(86400000)));
+      dailyKm = spanDays>0 ? totalKm/spanDays : null;
+    }
+    const estimatedUsed = dailyKm ? daysSince*dailyKm/avgMileage : 0;
+    const fuelLeft = Math.max(0, Math.min(last.fuel, last.fuel-estimatedUsed));
+    const rangeLeft = Math.max(0, Math.round(fuelLeft*avgMileage));
+    const pct = Math.min(100, Math.round((fuelLeft/RE_TANK)*100));
+    document.getElementById('fuel-remaining').textContent=fuelLeft.toFixed(1)+' L';
+    document.getElementById('gauge-fill').style.width=pct+'%';
+    document.getElementById('range-km').innerHTML=rangeLeft+'<span> km</span>';
+    const col = rangeLeft>100?'var(--re-green)':rangeLeft>50?'var(--re-gold)':'var(--re-accent)';
+    const bg = rangeLeft>100?'rgba(76,175,125,.15)':rangeLeft>50?'rgba(212,168,75,.15)':'rgba(232,82,58,.15)';
+    const badge = rangeLeft>100?'Good range':rangeLeft>50?'Fill soon':'Fill now!';
+    document.getElementById('range-badge').textContent=badge;
+    document.getElementById('range-badge').style.color=col;
+    document.getElementById('range-badge').style.background=bg;
+    document.getElementById('range-progress').style.width=pct+'%';
+    document.getElementById('range-progress').style.background=col;
+    if(dailyKm&&dailyKm>0){
+      const dLeft=Math.round(rangeLeft/dailyKm);
+      document.getElementById('range-sub').textContent='Based on '+dailyKm.toFixed(0)+' km/day avg';
+      document.getElementById('range-days').textContent=dLeft+' days est.';
+    } else {
+      document.getElementById('range-sub').textContent='Based on '+last.fuel.toFixed(1)+'L · '+avgMileage.toFixed(1)+' km/L avg';
+      document.getElementById('range-days').textContent='';
+    }
+  }
+  // Recent 3
+  const recent=[...s].reverse().slice(0,3);
+  let html='';
+  recent.forEach(e=>{
+    const idx=s.indexOf(e);
+    let effHtml='';
+    if(idx>0){ const m=computeMileage(s[idx-1],e); if(m) effHtml='<div class="entry-eff">'+m.toFixed(1)+' km/L</div>'; }
+    const green=idx>0&&computeMileage(s[idx-1],e)>=35?'green':'';
+    html+='<div class="entry-item"><div class="entry-dot '+green+'"></div><div class="entry-info"><div class="entry-date">'+fmtDate(e.date)+(e.station?' · '+e.station:'')+'</div><div class="entry-detail">'+e.fuel.toFixed(1)+'L'+(e.amount>0?' · ₹'+Math.round(e.amount):'')+'</div></div><div class="entry-right"><div class="entry-mileage">'+e.odo.toLocaleString()+' km</div>'+effHtml+'</div></div>';
+  });
+  document.getElementById('recent-list').innerHTML=html;
+}
+
+// ── RENDER HISTORY ──
+function renderHistory(){
+  const s=[...entries].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const sorted=[...entries].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const tf=entries.reduce((x,e)=>x+e.fuel,0);
+  const tc=entries.reduce((x,e)=>x+e.amount,0);
+  document.getElementById('strip-entries').textContent=entries.length+' entries';
+  document.getElementById('strip-fuel').textContent=tf.toFixed(1)+' L total';
+  document.getElementById('strip-cost').textContent='₹'+Math.round(tc).toLocaleString()+' spent';
+  document.getElementById('history-sub').textContent=entries.length+' fill-up'+(entries.length!==1?'s':'')+' recorded';
+  let html='';
+  sorted.forEach(e=>{
+    const idx=s.indexOf(e);
+    let effBadge='';
+    if(idx>0){ const m=computeMileage(s[idx-1],e); if(m) effBadge='<div class="he-eff-badge">'+m.toFixed(1)+' km/L</div>'; }
+    let imgRow='';
+    if(e.fileData&&e.fileData.startsWith('data:image')){
+      imgRow='<div class="he-img-row" onclick="openModal(\''+e.fileData+'\')"><img class="he-img-thumb" src="'+e.fileData+'" alt="receipt"><span class="he-img-label">📎 '+(e.fileName||'Receipt')+' · tap to view</span></div>';
+    } else if(e.fileName){
+      imgRow='<div class="he-img-row"><span class="he-img-label">📎 '+e.fileName+'</span></div>';
+    }
+    html+='<div class="history-entry"><div class="he-top"><div><div class="he-date">'+fmtDate(e.date)+'</div>'+(e.station?'<div style="font-size:11px;color:var(--re-muted);margin-top:2px">'+e.station+'</div>':'')+'</div><div style="display:flex;align-items:center;gap:6px">'+effBadge+'<button class="he-del" onclick="deleteEntry('+e.id+')" aria-label="Delete"><i class="ti ti-trash"></i></button></div></div><div class="he-row"><div class="he-stat"><div class="he-stat-val">'+e.fuel.toFixed(1)+'L</div><div class="he-stat-label">Fuel</div></div><div class="he-stat"><div class="he-stat-val">₹'+Math.round(e.amount)+'</div><div class="he-stat-label">Amount</div></div><div class="he-stat"><div class="he-stat-val">'+e.odo.toLocaleString()+'</div><div class="he-stat-label">Odometer</div></div></div>'+imgRow+'</div>';
+  });
+  document.getElementById('history-list').innerHTML=html||'<div style="padding:30px;text-align:center;color:var(--re-muted);font-size:13px">No entries yet.</div>';
+}
+
+// ── RENDER STATS ──
+function renderStats(){
+  const s=[...entries].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const mileages=[], costPerL=[];
+  for(let i=0;i<s.length-1;i++){
+    const m=computeMileage(s[i],s[i+1]);
+    if(m&&m>0&&m<100) mileages.push({val:m,date:s[i+1].date});
+    if(s[i].fuel>0&&s[i].amount>0) costPerL.push({val:s[i].amount/s[i].fuel,date:s[i].date});
+  }
+  document.getElementById('s-best').textContent=mileages.length?Math.max(...mileages.map(m=>m.val)).toFixed(1):'--';
+  document.getElementById('s-worst').textContent=mileages.length?Math.min(...mileages.map(m=>m.val)).toFixed(1):'--';
+  document.getElementById('s-fills').textContent=entries.length||'--';
+  const totalKm=s.length>1?s[s.length-1].odo-s[0].odo:0;
+  const totalCost=s.reduce((x,e)=>x+e.amount,0);
+  document.getElementById('s-rate').textContent=totalKm>0&&totalCost>0?'₹'+(totalCost/totalKm).toFixed(1):'--';
+  if(mileages.length>0){
+    const maxM=Math.max(...mileages.map(m=>m.val));
+    document.getElementById('bar-chart').innerHTML=mileages.slice(-7).map(m=>{
+      const h=Math.max(8,Math.round((m.val/maxM)*76));
+      const c=m.val>=35?'var(--re-green)':m.val>=28?'var(--re-gold)':'var(--re-accent)';
+      return '<div class="bar-col"><div class="bar-val">'+m.val.toFixed(0)+'</div><div class="bar" style="height:'+h+'px;background:'+c+'"></div><div class="bar-label">'+m.date.slice(5)+'</div></div>';
+    }).join('');
+  } else { document.getElementById('bar-chart').innerHTML='<div style="color:var(--re-muted);font-size:12px;width:100%;text-align:center;padding:20px 0">Add 2+ entries to see chart</div>'; }
+  if(costPerL.length>0){
+    const maxC=Math.max(...costPerL.map(c=>c.val));
+    document.getElementById('bar-chart-cost').innerHTML=costPerL.slice(-7).map(c=>{
+      const h=Math.max(8,Math.round((c.val/maxC)*76));
+      return '<div class="bar-col"><div class="bar-val">₹'+c.val.toFixed(0)+'</div><div class="bar" style="height:'+h+'px;background:var(--re-blue)"></div><div class="bar-label">'+c.date.slice(5)+'</div></div>';
+    }).join('');
+  } else { document.getElementById('bar-chart-cost').innerHTML='<div style="color:var(--re-muted);font-size:12px;width:100%;text-align:center;padding:20px 0">Add entries to see trend</div>'; }
+}
+
+renderDashboard();
+</script>
+</body>
+</html>
